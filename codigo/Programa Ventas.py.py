@@ -37,10 +37,13 @@ def ventana(ancho,alto,maximizada,titulo):
 	img_ticket = PhotoImage(file = "Iconos e imagenes/ticket.png")
 	img_preparacion = PhotoImage(file = "Iconos e imagenes/preparacion.png")
 	img_cerrado = PhotoImage(file = "Iconos e imagenes/cerrado.png")
+	img_borrador = PhotoImage(file = "Iconos e imagenes/borrador.png")
+	img_revisar = PhotoImage(file = "Iconos e imagenes/revisar.png")
 
 	frame_login = Frame(ventana, bg=color_login)
 	frame_principal = Frame(ventana, bg=color_fondo)
 	frame_izquierdo = Frame(frame_principal, bg = color_frames)
+	frame_central = Frame(frame_principal, bg = color_frames)
 	frame_derecho = Frame(frame_principal, bg = color_frames)
 	frame_inferior = Frame(frame_principal, bg = color_frames)
 	label_logo = Label(frame_principal, image = imagen_logo, relief = "flat")
@@ -420,14 +423,62 @@ def ventana(ancho,alto,maximizada,titulo):
 		def mis_clientes():
 			olvidar_pantalla_principal()
 			mensaje_busqueda_clientes = Label(cinta_superior, bg= color_botones, text = "Búsqueda de clientes", font = fuente_principal, fg = "white")
-			cinta_superior.pack(fill = X, anchor = N)
-			mensaje_busqueda_clientes.pack()
+			label_buscar = Label(frame_principal, text = "Elija Código o Nombre", font = fuente_botones, bg = color_fondo, fg = "white")
+			cajon_buscar_clientes = Entry(frame_principal, font = fuente_principal, bg = "gray66")
 			frame_principal.pack(fill = BOTH, expand = 1)
+			cinta_superior.pack(fill = X, anchor = N)
+			mensaje_seleccione = Label (frame_inferior, text = "Click: Seleccionar", font = fuente_principal, bg = color_frames, fg = "white")
+			mensaje_busqueda_clientes.pack()
+			label_buscar.pack()
+			cajon_buscar_clientes.pack(ipadx = 200, pady = 10, anchor = N)
+			frame_central.pack(fill = BOTH, expand = 1, pady = 20)
+			frame_inferior.pack(side = BOTTOM, ipadx = 610, ipady = 30)
+			mensaje_seleccione.pack(side = LEFT, padx = 10, anchor = N)
+			tabla_clientes = ttk.Treeview(frame_central, style = "oscuro.Treeview")
+			tabla_clientes.pack(side = TOP, fill = BOTH, expand = 1)
+			tabla_clientes["columns"] = ("Nombre","Domicilio","Teléfono","E-Mail")
+			tabla_clientes.heading("#0", text = "Número")
+			tabla_clientes.heading("Nombre", text = "Nombre")
+			tabla_clientes.heading("Domicilio", text = "Domicilio")
+			tabla_clientes.heading("Teléfono", text = "Teléfono")
+			tabla_clientes.heading("E-Mail", text = "E-Mail")
+			tabla_clientes.column("#0", width = 10)
+			tabla_clientes.column("Nombre", width = 150)
+			tabla_clientes.column("Domicilio", width = 350)
+			tabla_clientes.column("Teléfono", width = 80)
+			tabla_clientes.column("E-Mail", width = 150)
+
+			###CARGA CLIENTES DESDE BD###
+			def cargar_clientes():
+				tabla = conexion.cursor()
+				tabla.execute("SELECT* FROM clientes")
+				datos = tabla.fetchall()
+				for fila in tabla_clientes.get_children():
+					tabla_clientes.delete(fila)
+				for dato in datos:
+					tabla_clientes.insert("", END, text = dato[0], values = (dato[1], dato[2], dato[3],dato[4]))
+				tabla.close()
+			cargar_clientes()
+
+			def añadir_cliente():
+				pass
+			boton_añadir_cliente = Button(frame_inferior, bg = color_botones, text = "  Añadir Cliente  ", font = fuente_botones, command = añadir_cliente, image = img_añadir_prod, compound = RIGHT)
+			boton_añadir_cliente.pack(side = LEFT, padx = 10, anchor = N)
+
+			def editar_cliente():
+				pass
+			boton_editar_cliente = Button(frame_inferior, bg = color_botones, text = " Editar Cliente ", font = fuente_botones, command = editar_cliente, image = img_editar_prod, compound = RIGHT)
+			boton_editar_cliente.pack(side = LEFT, padx = 10, anchor = N)
+
+			def eliminar_cliente():
+				pass
+			boton_eliminar_cliente = Button(frame_inferior, bg = color_botones, text = "Eliminar Cliente", font = fuente_botones, command = eliminar_cliente, image = img_eliminar, compound = RIGHT)
+			boton_eliminar_cliente.pack(side = LEFT, padx = 10, anchor = N)
 
 			def volver():
 				olvidar_mis_clientes()
 				pantalla_principal()
-			boton_volver = Button(frame_principal, bg = color_botones, text = "Volver", font = fuente_botones, command = volver, image = img_volver, compound = RIGHT)
+			boton_volver = Button(frame_inferior, bg = color_botones, text = "Volver", font = fuente_botones, command = volver, image = img_volver, compound = RIGHT)
 			boton_volver.pack(side = BOTTOM, anchor = E)
 
 			def olvidar_mis_clientes():
@@ -435,6 +486,15 @@ def ventana(ancho,alto,maximizada,titulo):
 				mensaje_busqueda_clientes.forget()
 				frame_principal.forget()
 				boton_volver.forget()
+				label_buscar.forget()
+				cajon_buscar_clientes.forget()
+				frame_inferior.forget()
+				frame_central.forget()
+				mensaje_seleccione.forget()
+				boton_añadir_cliente.forget()
+				boton_editar_cliente.forget()
+				boton_eliminar_cliente.forget()
+				tabla_clientes.forget()
 
 		def inventario():
 			olvidar_pantalla_principal()
@@ -659,15 +719,63 @@ def ventana(ancho,alto,maximizada,titulo):
 
 		def proveedores():
 			olvidar_pantalla_principal()
-			mensaje_busqueda_proveedores = Label(cinta_superior, bg= color_botones, text = "Búsqueda de proveedores", font = fuente_principal, fg = "white")
-			cinta_superior.pack(fill = X, anchor = N)
-			mensaje_busqueda_proveedores.pack()
+			mensaje_busqueda_proveedores = Label(cinta_superior, bg= color_botones, text = "Búsqueda de Proveedores", font = fuente_principal, fg = "white")
+			label_buscar = Label(frame_principal, text = "Elija Código o Nombre", font = fuente_botones, bg = color_fondo, fg = "white")
+			cajon_buscar_proveedores = Entry(frame_principal, font = fuente_principal, bg = "gray66")
 			frame_principal.pack(fill = BOTH, expand = 1)
+			cinta_superior.pack(fill = X, anchor = N)
+			mensaje_seleccione = Label (frame_inferior, text = "Click: Seleccionar", font = fuente_principal, bg = color_frames, fg = "white")
+			mensaje_busqueda_proveedores.pack()
+			label_buscar.pack()
+			cajon_buscar_proveedores.pack(ipadx = 200, pady = 10, anchor = N)
+			frame_central.pack(fill = BOTH, expand = 1, pady = 20)
+			frame_inferior.pack(side = BOTTOM, ipadx = 610, ipady = 30)
+			mensaje_seleccione.pack(side = LEFT, padx = 10, anchor = N)
+			tabla_proveedores = ttk.Treeview(frame_central, style = "oscuro.Treeview")
+			tabla_proveedores.pack(side = TOP, fill = BOTH, expand = 1)
+			tabla_proveedores["columns"] = ("Razón Social","Domicilio","Teléfono","E-Mail")
+			tabla_proveedores.heading("#0", text = "Número")
+			tabla_proveedores.heading("Razón Social", text = "Razón Social")
+			tabla_proveedores.heading("Domicilio", text = "Domicilio")
+			tabla_proveedores.heading("Teléfono", text = "Teléfono")
+			tabla_proveedores.heading("E-Mail", text = "E-Mail")
+			tabla_proveedores.column("#0", width = 10)
+			tabla_proveedores.column("Razón Social", width = 150)
+			tabla_proveedores.column("Domicilio", width = 350)
+			tabla_proveedores.column("Teléfono", width = 80)
+			tabla_proveedores.column("E-Mail", width = 150)
+
+			###CARGA PROVEEDORES DESDE BD###
+			def cargar_proveedores():
+				tabla = conexion.cursor()
+				tabla.execute("SELECT* FROM proveedores")
+				datos = tabla.fetchall()
+				for fila in tabla_proveedores.get_children():
+					tabla_proveedores.delete(fila)
+				for dato in datos:
+					tabla_proveedores.insert("", END, text = dato[0], values = (dato[1], dato[2], dato[3],dato[4]))
+				tabla.close()
+			cargar_proveedores()
+
+			def añadir_proveedor():
+				pass
+			boton_añadir_proveedor = Button(frame_inferior, bg = color_botones, text = "  Añadir Proveedor  ", font = fuente_botones, command = añadir_proveedor, image = img_añadir_prod, compound = RIGHT)
+			boton_añadir_proveedor.pack(side = LEFT, padx = 10, anchor = N)
+
+			def editar_proveedor():
+				pass
+			boton_editar_proveedor = Button(frame_inferior, bg = color_botones, text = " Editar Proveedor ", font = fuente_botones, command = editar_proveedor, image = img_editar_prod, compound = RIGHT)
+			boton_editar_proveedor.pack(side = LEFT, padx = 10, anchor = N)
+
+			def eliminar_proveedor():
+				pass
+			boton_eliminar_proveedor = Button(frame_inferior, bg = color_botones, text = "Eliminar Proveedor", font = fuente_botones, command = eliminar_proveedor, image = img_eliminar, compound = RIGHT)
+			boton_eliminar_proveedor.pack(side = LEFT, padx = 10, anchor = N)
 
 			def volver():
 				olvidar_proveedores()
 				pantalla_principal()
-			boton_volver = Button(frame_principal, bg = color_botones, text = "Volver", font = fuente_botones, command = volver, image = img_volver, compound = RIGHT)
+			boton_volver = Button(frame_inferior, bg = color_botones, text = "Volver", font = fuente_botones, command = volver, image = img_volver, compound = RIGHT)
 			boton_volver.pack(side = BOTTOM, anchor = E)
 
 			def olvidar_proveedores():
@@ -675,18 +783,75 @@ def ventana(ancho,alto,maximizada,titulo):
 				mensaje_busqueda_proveedores.forget()
 				frame_principal.forget()
 				boton_volver.forget()
+				label_buscar.forget()
+				cajon_buscar_proveedores.forget()
+				frame_inferior.forget()
+				frame_central.forget()
+				mensaje_seleccione.forget()
+				boton_añadir_proveedor.forget()
+				boton_editar_proveedor.forget()
+				boton_eliminar_proveedor.forget()
+				tabla_proveedores.forget()
 
 		def reportes():
 			olvidar_pantalla_principal()
-			mensaje_busqueda_fechas = Label(cinta_superior, bg= color_botones, text = "Búsqueda por fecha (formato dd-mm-aaaa)", font = fuente_principal, fg = "white")
-			cinta_superior.pack(fill = X, anchor = N)
-			mensaje_busqueda_fechas.pack()
+			mensaje_busqueda_fechas = Label(cinta_superior, bg= color_botones, text = "Módulo Reportes", font = fuente_principal, fg = "white")
+			label_buscar = Label(frame_principal, text = "Búsqueda por fecha (formato dd-mm-aaaa)", font = fuente_botones, bg = color_fondo, fg = "white")
+			cajon_buscar_reportes = Entry(frame_principal, font = fuente_principal, bg = "gray66")
 			frame_principal.pack(fill = BOTH, expand = 1)
+			cinta_superior.pack(fill = X, anchor = N)
+			mensaje_seleccione = Label (frame_inferior, text = "Click: Seleccionar", font = fuente_principal, bg = color_frames, fg = "white")
+			mensaje_busqueda_fechas.pack()
+			label_buscar.pack()
+			cajon_buscar_reportes.pack(ipadx = 200, pady = 10, anchor = N)
+			frame_central.pack(ipadx = 165, ipady = 90, pady = 20)
+			frame_inferior.pack(side = BOTTOM, ipadx = 610, ipady = 30)
+			mensaje_seleccione.pack(side = LEFT, padx = 10, anchor = N)
+			tabla_reportes = ttk.Treeview(frame_central, style = "oscuro.Treeview")
+			tabla_reportes.pack(side = TOP, fill = BOTH, expand = 1)
+			tabla_reportes["columns"] = ("Fecha y Hora","Total Ticket","Costo Total","Ganancia")
+			tabla_reportes.heading("#0", text = "Número")
+			tabla_reportes.heading("Fecha y Hora", text = "Fecha y Hora")
+			tabla_reportes.heading("Total Ticket", text = "Total Ticket")
+			tabla_reportes.heading("Costo Total", text = "Costo Total")
+			tabla_reportes.heading("Ganancia", text = "Ganancia")
+			tabla_reportes.column("#0", width = 10)
+			tabla_reportes.column("Fecha y Hora", width = 170)
+			tabla_reportes.column("Total Ticket", width = 45)
+			tabla_reportes.column("Costo Total", width = 45)
+			tabla_reportes.column("Ganancia", width = 45)
+			
+			###CARGA REPORTES DESDE BD###
+			def cargar_reportes():
+				tabla = conexion.cursor()
+				tabla.execute("SELECT* FROM reportes")
+				datos = tabla.fetchall()
+				for fila in tabla_reportes.get_children():
+					tabla_reportes.delete(fila)
+				for dato in datos:
+					tabla_reportes.insert("", END, text = dato[0], values = (dato[1], dato[2], dato[3], dato[4]))
+				tabla.close()
+			cargar_reportes()
+
+			def ver_ticket():
+				pass
+			boton_ver_ticket = Button(frame_inferior, bg = color_botones, text = "     Ver Ticket     ", font = fuente_botones, command = ver_ticket, image = img_revisar, compound = RIGHT)
+			boton_ver_ticket.pack(side = LEFT, padx = (145,0), anchor = N)
+
+			def imprimir_reporte():
+				pass
+			boton_imprimir_reporte = Button(frame_inferior, bg = color_botones, text = "Imprimir Reporte", font = fuente_botones, command = imprimir_reporte, image = img_ticket, compound = RIGHT)
+			boton_imprimir_reporte.pack(side = LEFT, padx = (20,0), anchor = N)
+
+			def limpiar_pant():
+				pass
+			boton_limpiar_pant = Button(frame_inferior, bg = color_botones, text = "Limpiar Pantalla", font = fuente_botones, command = limpiar_pant, image = img_borrador, compound = RIGHT)
+			boton_limpiar_pant.pack(side = LEFT, padx = (20,0), anchor = N)
 
 			def volver():
 				olvidar_reportes()
 				pantalla_principal()
-			boton_volver = Button(frame_principal, bg = color_botones, text = "Volver", font = fuente_botones, command = volver, image = img_volver, compound = RIGHT)
+			boton_volver = Button(frame_inferior, bg = color_botones, text = "Volver", font = fuente_botones, command = volver, image = img_volver, compound = RIGHT)
 			boton_volver.pack(side = BOTTOM, anchor = E)
 
 			def olvidar_reportes():
@@ -694,6 +859,15 @@ def ventana(ancho,alto,maximizada,titulo):
 				mensaje_busqueda_fechas.forget()
 				frame_principal.forget()
 				boton_volver.forget()
+				label_buscar.forget()
+				cajon_buscar_reportes.forget()
+				frame_inferior.forget()
+				frame_central.forget()
+				mensaje_seleccione.forget()
+				boton_ver_ticket.forget()
+				boton_imprimir_reporte.forget()
+				boton_limpiar_pant.forget()
+				tabla_reportes.forget()
 
 		def ajustes():
 			olvidar_pantalla_principal()
