@@ -4,6 +4,7 @@ import random
 import sqlite3
 from tkinter import ttk
 import os
+from datetime import datetime
 conexion = sqlite3.connect("Base de Datos/compra_express.db")
 color_login = "gray24"
 color_fondo = "gray25"
@@ -92,7 +93,10 @@ def ventana(ancho,alto,maximizada,titulo):
 			mensaje_busqueda_pedidos = Label(cinta_superior, bg= color_botones, text = "Menú Ventas", font = fuente_principal, fg = "white")
 			label_buscar = Label(frame_principal, text = "Elija Código, Categoria o Nombre", font = fuente_botones, bg = color_fondo, fg = "white")
 			cajon_buscar_productos = Entry(frame_principal, font = fuente_principal, bg = "gray66")
-			mensaje_seleccione = Label (frame_inferior, text = "Click Tabla: Seleccionar Producto", font = fuente_principal, bg = color_frames, fg = "white")
+			mensaje_seleccione = Label(frame_inferior, text = "Click Tabla: Seleccionar Producto", font = fuente_principal, bg = color_frames, fg = "white")
+			frame_centro = Frame(frame_principal, bg = color_fondo)
+			label_cantidad = Label(frame_centro, text = "Cantidad", font = "Calibri, 10", bg = color_fondo, fg = "white")
+			entry_cantidad = ttk.Entry(frame_centro, font = "Calibri, 10")
 			frame_principal.pack(fill = BOTH, expand = 1)
 			cinta_superior.pack(fill = X)
 			mensaje_busqueda_pedidos.pack()
@@ -101,7 +105,10 @@ def ventana(ancho,alto,maximizada,titulo):
 			frame_inferior.pack(side = BOTTOM, ipadx = 610, ipady = 20)
 			mensaje_seleccione.pack(side = LEFT, padx = 10, anchor = N)
 			frame_izquierdo.pack(side = LEFT, fill = BOTH, expand = 1, padx = (10,10), pady = (0, 10))
-			frame_derecho.pack(side = LEFT, fill = Y, padx = (0, 10), pady = (0,10), ipadx = 200, ipady = 200)
+			frame_centro.pack(side = LEFT, fill = Y, expand = 1, padx = (10,10), pady = (0, 10))
+			frame_derecho.pack(side = LEFT, fill = Y, padx = (0, 10), pady = (0,10), ipadx = 250, ipady = 200)
+			label_cantidad.pack()
+			entry_cantidad.pack()
 			
 			###FUNCION VOLVER ATRAS###
 			def volver():
@@ -117,50 +124,133 @@ def ventana(ancho,alto,maximizada,titulo):
 
 			###FUNCION VENDER###
 			def vender():
+				total_venta = 0
+				total_iva = 0
+				total_costo_carr = 0
+				total_ganancia_carr = 0
+
+				if(len(carrito)<1):
+					messagebox.showerror("Error", "Primero debe cargar productos")
+					return
+				tabla = conexion.cursor()
 				for articulo in carrito:
-					print(articulo)
+					id_en_carrito = articulo[0]
+					id_select = (articulo[0],)
+					cant_carrito = articulo[2]
+					nombre_prod_carrito = articulo[3]
+					stock_carrito = articulo[5]
+					stock_nuevo = (articulo[5] - articulo [2])
+					total_venta = total_venta + float(articulo[4])
+					precio_sin_iva_carr = float(articulo[4]) / 1.21
+					precio_sin_iva_red = round(precio_sin_iva_carr,2)
+					iva_carr = precio_sin_iva_carr * 0.21
+					iva_redondeado = round(iva_carr,2)
+					precio_con_iva_carr = articulo[4]
+					total_iva_carr = total_iva + iva_redondeado
+					datos_carrito = (stock_nuevo, id_en_carrito)
+					tabla.execute("UPDATE productos SET stock = ? WHERE id_producto = ?", datos_carrito)
+					conexion.commit()
+
+					tabla.execute("SELECT costo FROM productos WHERE id_producto = ?", id_select)
+					datos = tabla.fetchall()
+					costo_carr = datos[0][0]
+					total_costo_carr = (total_costo_carr + costo_carr)
+					ganancia_carr = (precio_sin_iva_red - costo_carr)
+					total_ganancia_carr = (total_ganancia_carr + ganancia_carr)
+					print(total_costo_carr, total_ganancia_carr)
+											
+				fecha = datetime.now()
+				fecha_actual = fecha.strftime('%d/%m/%Y, %H:%M:%S')
+				guardar_venta = (fecha_actual, total_venta, total_iva_carr, total_costo_carr, total_ganancia_carr)
+				tabla.execute("INSERT INTO reportes(fecha_hora, total_ticket, total_iva, total_costo, ganancia) VALUES(?,?,?,?,?)", guardar_venta)
+				conexion.commit()
+				tabla.close()	
+				messagebox.showinfo("Ventas", "Venta realizada")
+				for fila in tabla_carrito.get_children():
+					tabla_carrito.delete(fila)
+				for fila in tabla_productos.get_children():
+					tabla_productos.delete(fila)
+				carrito.clear()
+				entry_cantidad.delete(0, END)
+				cargar_articulos()
+								
 			boton_vender = Button(frame_inferior, text = "      Vender     ", font = fuente_botones, bg = color_botones, command = vender, image = img_tilde, compound = RIGHT)
 			boton_vender.pack(side = RIGHT, padx = 10, anchor = N)
 
 			###TABLA PRODUCTOS###
 			tabla_productos = ttk.Treeview(frame_izquierdo, style = "oscuro.Treeview")
 			tabla_productos.pack(side = TOP, fill = BOTH, expand = 1)
-			tabla_productos["columns"] = ("Categoria","Detalle", "Precio")
+			tabla_productos["columns"] = ("Categoria","Detalle", "Precio", "Stock")
 			tabla_productos.heading("#0", text = "Codigo")
 			tabla_productos.heading("Categoria", text = "Categoria")
 			tabla_productos.heading("Detalle", text = "Detalle")
 			tabla_productos.heading("Precio", text = "Precio")
+			tabla_productos.heading("Stock", text = "Stock")
 			tabla_productos.column("#0", width = 50)
-			tabla_productos.column("Categoria", width = 120)
-			tabla_productos.column("Detalle", width = 350)
-			tabla_productos.column("Precio", width = 90)
+			tabla_productos.column("Categoria", width = 100)
+			tabla_productos.column("Detalle", width = 220)
+			tabla_productos.column("Precio", width = 85)
+			tabla_productos.column("Stock", width = 45)
 			
 			###TABLA CARRITO###
 			tabla_carrito = ttk.Treeview(frame_derecho, style = "oscuro.Treeview")
 			tabla_carrito.pack(side = TOP, fill = BOTH, expand = 1)
-			tabla_carrito["columns"] = ("Categoria","Detalle", "Precio")
+			tabla_carrito["columns"] = ("Categoria","Cantidad","Detalle", "Precio")
 			tabla_carrito.heading("#0", text = "Codigo")
 			tabla_carrito.heading("Categoria", text = "Categoria")
+			tabla_carrito.heading("Cantidad", text = "Cantidad")
 			tabla_carrito.heading("Detalle", text = "Detalle")
 			tabla_carrito.heading("Precio", text = "Precio")
 			tabla_carrito.column("#0", width = 1)
-			tabla_carrito.column("Categoria", width = 1)
-			tabla_carrito.column("Detalle", width = 210)
+			tabla_carrito.column("Categoria", width = 5)
+			tabla_carrito.column("Cantidad", width = 1)
+			tabla_carrito.column("Detalle", width = 140)
 			tabla_carrito.column("Precio", width = 10)
 						
 			###Selecciona articulos de la tabla productos y la inserta en el carrito###
+			
+			###VALIDACIONES###
 			def seleccionar_articulo():
 				index = tabla_productos.selection()
 				fila = tabla_productos.item(index)
+				if (len(index) == 0):
+					messagebox.showwarning("Aviso", "Debe seleccionar un artículo")
+					return		
+				if (entry_cantidad.get() == ""):
+					messagebox.showwarning("Aviso", "Debe ingresar una cantidad")
+					return
+				###VERIFICA QUE LA CANTIDAD NO SUPERE AL STOCK###
+				cod_art = (fila["text"],)
+				tabla = conexion.cursor()
+				tabla.execute("SELECT stock FROM productos WHERE id_producto = ?", cod_art)
+				datos = tabla.fetchall()
+				tabla.close()
+				stock = datos[0][0]
+				if (stock < int(entry_cantidad.get())):
+					messagebox.showwarning("Error", "La cantidad no puede ser mayor al stock")
+					entry_cantidad.delete(0, END)
+					return
+				###TOMA DE DATOS DE LA FILA SELECCIONADA###
 				codigo = fila["text"]
 				categoria = fila["values"][0]
+				cantidad = int(entry_cantidad.get())
 				detalle = fila["values"][1]
 				precio = fila["values"][2]
-				tabla_carrito.insert("", END, text = codigo, values = (categoria, detalle, precio))
-			
+				precio_float = float(precio)
+				sub_total = (cantidad * precio_float)
+
+				###CARGA DE DATOS EN TABLA CARRITO###
+				tabla_carrito.insert("", END, text = codigo, values = (categoria, cantidad, detalle, sub_total))
+				entry_cantidad.delete(0, END)
+				
+				###CARGA ARTICULOS SELECCIONADOS CARRITO (BACK)###
+				articulo = [codigo, categoria, cantidad, detalle, sub_total, stock]
+				carrito.append(articulo)
+											
 			##tabla_productos.bind("<<TreeviewSelect>>", seleccionar_articulo)### Este evento no se usará, se reemplazó por el botón añadir. Si se quita el botón colocar def seleccionar_articulo(evento):### 
-			boton_añadir = Button(frame_inferior, text = "Añadir al Carro", font = fuente_botones, bg = color_botones, image = img_añadir_carro, compound = RIGHT, command = seleccionar_articulo )
-			boton_añadir.pack(side = LEFT, padx = 50, anchor = N)
+			boton_añadir = Button(frame_centro, text = "Añadir al Carro", font = "Calibri, 12", bg = color_botones, image = img_añadir_carro, compound = RIGHT, command = seleccionar_articulo )
+			boton_añadir.pack(pady = 20)
+			###side = LEFT, , anchor = N
 			
 			###CARGA INICIAL ARTICULOS TABLA PRODUCTOS DESDE BD###
 			def cargar_articulos():
@@ -173,7 +263,7 @@ def ventana(ancho,alto,maximizada,titulo):
 					id_categoria = (dato[1],)
 					tabla.execute("SELECT nombre_categoria FROM categorias WHERE id = ?", id_categoria)
 					datos_categoria = tabla.fetchall()
-					tabla_productos.insert("", END, text = dato[0], values = (datos_categoria[0], dato[2], dato[4]))
+					tabla_productos.insert("", END, text = dato[0], values = (datos_categoria[0], dato[2], dato[4], dato[5]))
 				tabla.close()
 			cargar_articulos()
 
@@ -193,7 +283,7 @@ def ventana(ancho,alto,maximizada,titulo):
 					id_categoria = (dato[1],)
 					tabla.execute("SELECT nombre_categoria FROM categorias WHERE id = ?", id_categoria)
 					datos_categoria = tabla.fetchall()
-					tabla_productos.insert("", END, text = dato[0], values = (datos_categoria[0], dato[2], dato[4]))
+					tabla_productos.insert("", END, text = dato[0], values = (datos_categoria[0], dato[2], dato[4], dato[5]))
 				tabla.close()
 			cajon_buscar_productos.bind("<KeyRelease>", buscar_productos)
 
@@ -202,6 +292,9 @@ def ventana(ancho,alto,maximizada,titulo):
 				index = tabla_carrito.selection()
 				if (len(index) > 0):
 					tabla_carrito.delete(index)
+				else:
+					messagebox.showerror("Error", "Previo debe ingresar algún producto")
+					return
 			boton_quitar = Button(frame_inferior, text = "Quitar del Carro", font = fuente_botones, bg = color_botones, image = img_eliminar, compound = RIGHT, command = quitar_del_carrito)
 			boton_quitar.pack(side = RIGHT, padx = 10, anchor = N)
 
@@ -213,6 +306,7 @@ def ventana(ancho,alto,maximizada,titulo):
 				cajon_buscar_productos.forget()
 				frame_inferior.forget()
 				frame_izquierdo.forget()
+				frame_centro.forget()
 				frame_derecho.forget()
 				boton_añadir.forget()
 				boton_quitar.forget()
@@ -222,6 +316,9 @@ def ventana(ancho,alto,maximizada,titulo):
 				tabla_productos.forget()
 				tabla_carrito.forget()
 				mensaje_seleccione.forget()
+				carrito.clear()
+				entry_cantidad.forget()
+				label_cantidad.forget()
 
 		def ver_pedidos():
 			olvidar_pantalla_principal()
@@ -550,6 +647,7 @@ def ventana(ancho,alto,maximizada,titulo):
 			entry_precio_venta.pack(ipadx = 20)
 			label_stock.pack()
 			entry_stock.pack(ipadx = 20)
+			entry_codigo.config(state = "readonly")
 
 			def volver():
 				olvidar_inventario()
@@ -570,6 +668,9 @@ def ventana(ancho,alto,maximizada,titulo):
 				return(categorias_actuales)
 			
 			def guardar_articulo():
+				if(entry_categoria.get() == "" or entry_producto.get() == "" or entry_costo.get() == "" or entry_precio_venta.get() == "" or entry_stock.get() == ""):
+					messagebox.showerror("Guardar", "Debe rellenar todos los campos")
+					return
 				categorias_actuales = verificar_categoria()
 				datos = (categorias_actuales[0][0], entry_producto.get(), entry_costo.get(), entry_precio_venta.get(), entry_stock.get())
 				tabla = conexion.cursor()
@@ -581,6 +682,13 @@ def ventana(ancho,alto,maximizada,titulo):
 				cargar_articulos()
 			
 			def modificar_articulo():
+				if(entry_categoria.get() == "" or entry_producto.get() == "" or entry_costo.get() == "" or entry_precio_venta.get() == "" or entry_stock.get() == ""):
+					messagebox.showerror("Modificar Artículo", "Debe seleccionar un artículo")
+					return
+				confirmar = messagebox.askyesno("Modificar Artículo", "¿Desea modificar el articulo seleccionado?")
+				if(confirmar == False):
+					return
+				entry_codigo.config(state = "normal")
 				categorias_actuales = verificar_categoria()
 				datos = (categorias_actuales[0][0], entry_producto.get(), entry_costo.get(), entry_precio_venta.get(), entry_stock.get(), entry_codigo.get())
 				tabla = conexion.cursor()
@@ -592,9 +700,16 @@ def ventana(ancho,alto,maximizada,titulo):
 				cargar_articulos()
 
 			def eliminar_articulo():
-				datos = (entry_codigo.get())
-				tabla = conexion.cursor("DELETE FROM productos WHERE id_producto = ?", datos)
-				tabla.execute()
+				if(entry_categoria.get() == "" or entry_producto.get() == "" or entry_costo.get() == "" or entry_precio_venta.get() == "" or entry_stock.get() == ""):
+					messagebox.showerror("Eliminar", "Debe seleccionar un artículo")
+					return
+				confirmar = messagebox.askyesno("Eliminar Artículo", "¿Desea eliminar el articulo seleccionado?")
+				if(confirmar == False):
+					return
+				entry_codigo.config(state = "normal")
+				datos = (entry_codigo.get(),)
+				tabla = conexion.cursor()
+				tabla.execute("DELETE FROM productos WHERE id_producto = ?", datos)
 				conexion.commit()
 				tabla.close()
 				messagebox.showinfo("Eliminar", "Artículo eliminado con éxito")
@@ -669,22 +784,25 @@ def ventana(ancho,alto,maximizada,titulo):
 				datos_categoria = tabla.fetchall()
 				tabla.close()
 				borrar_entrys()
+				entry_codigo.config(state = "normal")
 				entry_codigo.insert(END, datos [0][0])
 				entry_categoria.insert(END, datos_categoria[0][0])
 				entry_producto.insert(END, datos[0][2])
 				entry_costo.insert(END, datos[0][3])
 				entry_precio_venta.insert(END, datos[0][4])
 				entry_stock.insert(END, datos[0][5])
+				entry_codigo.config(state = "readonly")
 	
 			### Borrar Entrys###
 			def borrar_entrys():
+				entry_codigo.config(state = "normal")
 				entry_codigo.delete(0, END)
 				entry_categoria.delete(0, END)
 				entry_producto.delete(0, END)
 				entry_costo.delete(0, END)
 				entry_precio_venta.delete(0, END)
 				entry_stock.delete(0, END)
-								
+				entry_codigo.config(state = "readonly")								
 			tabla_inventario.bind("<<TreeviewSelect>>", seleccionar_articulo)
 
 			def olvidar_inventario():
@@ -809,15 +927,17 @@ def ventana(ancho,alto,maximizada,titulo):
 			mensaje_seleccione.pack(side = LEFT, padx = 10, anchor = N)
 			tabla_reportes = ttk.Treeview(frame_central, style = "oscuro.Treeview")
 			tabla_reportes.pack(side = TOP, fill = BOTH, expand = 1)
-			tabla_reportes["columns"] = ("Fecha y Hora","Total Ticket","Costo Total","Ganancia")
+			tabla_reportes["columns"] = ("Fecha y Hora","Total Ticket", "Total IVA","Costo Total","Ganancia")
 			tabla_reportes.heading("#0", text = "Número")
 			tabla_reportes.heading("Fecha y Hora", text = "Fecha y Hora")
 			tabla_reportes.heading("Total Ticket", text = "Total Ticket")
+			tabla_reportes.heading("Total IVA", text = "Total IVA")
 			tabla_reportes.heading("Costo Total", text = "Costo Total")
 			tabla_reportes.heading("Ganancia", text = "Ganancia")
 			tabla_reportes.column("#0", width = 10)
 			tabla_reportes.column("Fecha y Hora", width = 170)
 			tabla_reportes.column("Total Ticket", width = 45)
+			tabla_reportes.column("Total IVA", width = 45)
 			tabla_reportes.column("Costo Total", width = 45)
 			tabla_reportes.column("Ganancia", width = 45)
 			
@@ -829,14 +949,14 @@ def ventana(ancho,alto,maximizada,titulo):
 				for fila in tabla_reportes.get_children():
 					tabla_reportes.delete(fila)
 				for dato in datos:
-					tabla_reportes.insert("", END, text = dato[0], values = (dato[1], dato[2], dato[3], dato[4]))
+					tabla_reportes.insert("", END, text = dato[0], values = (dato[1], dato[2], dato[3], dato[4], dato[5]))
 				tabla.close()
 			cargar_reportes()
 
 			def ver_ticket():
 				pass
 			boton_ver_ticket = Button(frame_inferior, bg = color_botones, text = "     Ver Ticket     ", font = fuente_botones, command = ver_ticket, image = img_revisar, compound = RIGHT)
-			boton_ver_ticket.pack(side = LEFT, padx = (155,0), anchor = N)
+			boton_ver_ticket.pack(side = LEFT, padx = (145,0), anchor = N)
 
 			def imprimir_reporte():
 				pass
@@ -946,4 +1066,3 @@ def ventana(ancho,alto,maximizada,titulo):
 	ventana.mainloop()
 if __name__ == '__main__':
 	ventana(800,600,"zoomed","Compra Express")
-
