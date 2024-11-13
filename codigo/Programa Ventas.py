@@ -5,6 +5,10 @@ import sqlite3
 from tkinter import ttk
 import os
 from datetime import datetime
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+import time
+import subprocess
 conexion = sqlite3.connect("Base de Datos/compra_express.db")
 color_login = "gray24"
 color_fondo = "gray25"
@@ -116,12 +120,7 @@ def ventana(ancho,alto,maximizada,titulo):
 				pantalla_principal()
 			boton_volver = Button(frame_inferior, bg = color_botones, text = "Volver", font = fuente_botones, command = volver, image = img_volver, compound = RIGHT)
 			boton_volver.pack(side = BOTTOM, anchor = E)
-			
-			def emitir_ticket():
-				pass
-			boton_ticket = Button(frame_inferior, text = "Emitir Ticket", font = fuente_botones, bg = color_botones, image = img_ticket, compound = RIGHT)
-			boton_ticket.pack(side = RIGHT, padx = 10, anchor = N)
-
+						
 			###FUNCION VENDER###
 			def vender():
 				total_venta = 0
@@ -157,8 +156,7 @@ def ventana(ancho,alto,maximizada,titulo):
 					total_costo_carr = (total_costo_carr + costo_carr)
 					ganancia_carr = (precio_sin_iva_red - costo_carr)
 					total_ganancia_carr = (total_ganancia_carr + ganancia_carr)
-					print(total_costo_carr, total_ganancia_carr)
-											
+																
 				fecha = datetime.now()
 				fecha_actual = fecha.strftime('%d/%m/%Y, %H:%M:%S')
 				guardar_venta = (fecha_actual, total_venta, total_iva_carr, total_costo_carr, total_ganancia_carr)
@@ -170,13 +168,77 @@ def ventana(ancho,alto,maximizada,titulo):
 					tabla_carrito.delete(fila)
 				for fila in tabla_productos.get_children():
 					tabla_productos.delete(fila)
+				emitir_ticket()
 				carrito.clear()
 				entry_cantidad.delete(0, END)
 				cargar_articulos()
-								
-			boton_vender = Button(frame_inferior, text = "      Vender     ", font = fuente_botones, bg = color_botones, command = vender, image = img_tilde, compound = RIGHT)
-			boton_vender.pack(side = RIGHT, padx = 10, anchor = N)
+						
+			def emitir_ticket():
+				horaActual = time.strftime("%H%M%S")
+				fechaActual = time.strftime("%d%m%Y")
+				fechaHoy = time.strftime("%d/%m/%Y")
+				hora_formateada = time.strftime("%H:%M:%S")
+				nombreArchivo = f"Tickets/ticket{fechaActual}{horaActual}.pdf"
+				nuevoPdf = canvas.Canvas(nombreArchivo,pagesize = A4)
+				image_path = "Iconos e imagenes/logo_ticket.png"
+				sub_total = 0
+				iva_ticket = 0
+				total_ticket = 0
+				##print(nuevoPdf.getAvailableFonts())
+				
+				##Lineas X 
+				nuevoPdf.line(20, 820, 570, 820)
+				nuevoPdf.line(20, 20, 570, 20)
+				nuevoPdf.line(20, 720, 570, 720)
+				
+				#Lineas Y
+				nuevoPdf.line(20, 20, 20, 820)
+				nuevoPdf.line(570, 20, 570, 820)
+				nuevoPdf.line(480, 720, 480, 820)
 
+				#Imagen
+
+				nuevoPdf.drawImage(image_path, 470, 720)
+
+				#Campos
+
+				nuevoPdf.setFont("Times-Roman", 20)
+				nuevoPdf.drawString(275,780, "Factura")
+				nuevoPdf.setFont("Times-Roman", 20)
+				nuevoPdf.drawString(300,750, "B")
+				nuevoPdf.setFont("Times-Roman", 16)
+				nuevoPdf.drawString(30, 760, "Fecha: " + fechaHoy)
+				nuevoPdf.setFont("Times-Roman", 16)
+				nuevoPdf.drawString(30, 730, "Hora: " + hora_formateada)
+				nuevoPdf.setFont("Times-Roman", 16)
+				nuevoPdf.drawString(30, 690, "Cantidad")
+				nuevoPdf.setFont("Times-Roman", 16)
+				nuevoPdf.drawString(120, 690, "Artículo")
+				nuevoPdf.setFont("Times-Roman", 16)
+				nuevoPdf.drawString(480, 690, "Precio")
+
+				y = 650
+				for articulo in carrito:
+					##0: codigo, 1: categoria, 2: cantidad, 3:detalle, 4:precio, 5 stock##
+					nuevoPdf.drawString(30, y, str(articulo[2]))
+					nuevoPdf.drawString(120, y, articulo[3])
+					nuevoPdf.drawString(480, y, str(articulo[4]))
+					y -= 20
+					total_ticket += float(articulo[4])
+					prec_s_iva = float(articulo[4]) / 1.21
+					prec_sin_iva_red = round(prec_s_iva, 2)
+					iva_s_red = (prec_s_iva * 0.21)
+					iva_red = round(iva_s_red, 2)
+					iva_ticket += float(iva_red)
+				
+				nuevoPdf.drawString(380, 120, "TOTAL $: " + str(total_ticket))
+				nuevoPdf.drawString(380, 80, "IVA cons. final $: " + str(iva_ticket))
+				nuevoPdf.setFont("Times-Roman", 14)
+				nuevoPdf.drawString(50, 40, "El IVA discriminado es a fines informativos y no puede computarse como crédito fiscal")
+				nuevoPdf.save()
+				#Abre el Ticket
+				subprocess.Popen(nombreArchivo, shell = True)
+			
 			###TABLA PRODUCTOS###
 			tabla_productos = ttk.Treeview(frame_izquierdo, style = "oscuro.Treeview")
 			tabla_productos.pack(side = TOP, fill = BOTH, expand = 1)
@@ -246,7 +308,7 @@ def ventana(ancho,alto,maximizada,titulo):
 				###CARGA ARTICULOS SELECCIONADOS CARRITO (BACK)###
 				articulo = [codigo, categoria, cantidad, detalle, sub_total, stock]
 				carrito.append(articulo)
-											
+
 			##tabla_productos.bind("<<TreeviewSelect>>", seleccionar_articulo)### Este evento no se usará, se reemplazó por el botón añadir. Si se quita el botón colocar def seleccionar_articulo(evento):### 
 			boton_añadir = Button(frame_centro, text = "Añadir al Carro", font = "Calibri, 12", bg = color_botones, image = img_añadir_carro, compound = RIGHT, command = seleccionar_articulo )
 			boton_añadir.pack(pady = 20)
@@ -290,11 +352,30 @@ def ventana(ancho,alto,maximizada,titulo):
 			###FUNCION QUITAR DEL CARRITO###
 			def quitar_del_carrito():
 				index = tabla_carrito.selection()
-				if (len(index) > 0):
-					tabla_carrito.delete(index)
-				else:
+				if (len(index) == 0):
 					messagebox.showerror("Error", "Previo debe ingresar algún producto")
-					return
+					return				
+				###TOMA DE DATOS DE LA FILA INSERTADA###
+				index = tabla_carrito.selection()
+				fila = tabla_carrito.item(index)
+				codigo = fila["text"]
+				categoria = fila["values"][0]
+				cantidad = fila["values"][1]
+				detalle = fila["values"][2]
+				sub_total = float(fila["values"][3])
+				cod_art = (fila["text"],)
+				tabla = conexion.cursor()
+				tabla.execute("SELECT stock FROM productos WHERE id_producto = ?", cod_art)
+				datos = tabla.fetchall()
+				tabla.close()
+				stock = datos[0][0]
+				articSelec = [codigo, categoria, cantidad, detalle, sub_total, stock]
+				carrito.remove(articSelec)
+				tabla_carrito.delete(index)
+											
+			##BOTONES TICKET, VENDER Y QUITAR (se posicionan aqui para respetar el orden RIGHT)##
+			boton_vender = Button(frame_inferior, text = "Vender y Facturar", font = fuente_botones, bg = color_botones, command = vender, image = img_tilde, compound = RIGHT)
+			boton_vender.pack(side = RIGHT, padx = 10, anchor = N)
 			boton_quitar = Button(frame_inferior, text = "Quitar del Carro", font = fuente_botones, bg = color_botones, image = img_eliminar, compound = RIGHT, command = quitar_del_carrito)
 			boton_quitar.pack(side = RIGHT, padx = 10, anchor = N)
 
@@ -311,7 +392,6 @@ def ventana(ancho,alto,maximizada,titulo):
 				boton_añadir.forget()
 				boton_quitar.forget()
 				boton_vender.forget()
-				boton_ticket.forget()
 				boton_volver.forget()
 				tabla_productos.forget()
 				tabla_carrito.forget()
@@ -698,6 +778,7 @@ def ventana(ancho,alto,maximizada,titulo):
 				messagebox.showinfo("Actualizar", "Artículo modificado con éxito")
 				borrar_entrys()
 				cargar_articulos()
+				boton_añadir_producto.config(state = "normal")
 
 			def eliminar_articulo():
 				if(entry_categoria.get() == "" or entry_producto.get() == "" or entry_costo.get() == "" or entry_precio_venta.get() == "" or entry_stock.get() == ""):
@@ -715,6 +796,7 @@ def ventana(ancho,alto,maximizada,titulo):
 				messagebox.showinfo("Eliminar", "Artículo eliminado con éxito")
 				borrar_entrys()
 				cargar_articulos()
+				boton_añadir_producto.config(state = "normal")
 
 			def limpiar():
 				borrar_entrys()
@@ -792,6 +874,7 @@ def ventana(ancho,alto,maximizada,titulo):
 				entry_precio_venta.insert(END, datos[0][4])
 				entry_stock.insert(END, datos[0][5])
 				entry_codigo.config(state = "readonly")
+				boton_añadir_producto.config(state = "disable")
 	
 			### Borrar Entrys###
 			def borrar_entrys():
@@ -802,7 +885,8 @@ def ventana(ancho,alto,maximizada,titulo):
 				entry_costo.delete(0, END)
 				entry_precio_venta.delete(0, END)
 				entry_stock.delete(0, END)
-				entry_codigo.config(state = "readonly")								
+				entry_codigo.config(state = "readonly")
+				boton_añadir_producto.config(state = "normal")											
 			tabla_inventario.bind("<<TreeviewSelect>>", seleccionar_articulo)
 
 			def olvidar_inventario():
