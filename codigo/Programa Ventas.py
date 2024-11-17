@@ -23,7 +23,7 @@ def ventana(ancho,alto,maximizada,titulo):
 	ventana.geometry(f"{ancho}x{alto}")
 	ventana.state(maximizada)
 	ventana.title("Compra Express - Sistema de Ventas")
-	ventana.iconbitmap("logo_icono.ico")
+	ventana.iconbitmap("Iconos e imagenes/logo_icono.ico")
 	imagen_logo = PhotoImage(file = "Iconos e imagenes/logo.png")
 	img_ver_pedidos = PhotoImage(file = "Iconos e imagenes/pedidos.png")
 	img_vender = PhotoImage(file = "Iconos e imagenes/bolsa_papel.png")
@@ -155,7 +155,8 @@ def ventana(ancho,alto,maximizada,titulo):
 					costo_carr = datos[0][0]
 					total_costo_carr = (total_costo_carr + costo_carr)
 					ganancia_carr = (precio_sin_iva_red - costo_carr)
-					total_ganancia_carr = (total_ganancia_carr + ganancia_carr)
+					ganancia_carr_red = round(ganancia_carr, 2)
+					total_ganancia_carr = (total_ganancia_carr + ganancia_carr_red)
 																
 				fecha = datetime.now()
 				fecha_actual = fecha.strftime('%d/%m/%Y, %H:%M:%S')
@@ -641,16 +642,19 @@ def ventana(ancho,alto,maximizada,titulo):
 				pass
 			boton_añadir_cliente = Button(frame_inferior, bg = color_botones, text = "  Añadir Cliente  ", font = fuente_botones, command = añadir_cliente, image = img_añadir_prod, compound = RIGHT)
 			boton_añadir_cliente.pack(side = LEFT, padx = 10, anchor = N)
+			boton_añadir_cliente.config(state = "disable")
 
 			def editar_cliente():
 				pass
 			boton_editar_cliente = Button(frame_inferior, bg = color_botones, text = " Editar Cliente ", font = fuente_botones, command = editar_cliente, image = img_editar_prod, compound = RIGHT)
 			boton_editar_cliente.pack(side = LEFT, padx = 10, anchor = N)
+			boton_editar_cliente.config(state = "disable")
 
 			def eliminar_cliente():
 				pass
 			boton_eliminar_cliente = Button(frame_inferior, bg = color_botones, text = "Eliminar Cliente", font = fuente_botones, command = eliminar_cliente, image = img_eliminar, compound = RIGHT)
 			boton_eliminar_cliente.pack(side = LEFT, padx = 10, anchor = N)
+			boton_eliminar_cliente.config(state = "disable")
 
 			def volver():
 				olvidar_mis_clientes()
@@ -963,16 +967,20 @@ def ventana(ancho,alto,maximizada,titulo):
 				pass
 			boton_añadir_proveedor = Button(frame_inferior, bg = color_botones, text = "  Añadir Proveedor  ", font = fuente_botones, command = añadir_proveedor, image = img_añadir_prod, compound = RIGHT)
 			boton_añadir_proveedor.pack(side = LEFT, padx = 10, anchor = N)
+			boton_añadir_proveedor.config(state = "disable")
 
 			def editar_proveedor():
 				pass
 			boton_editar_proveedor = Button(frame_inferior, bg = color_botones, text = " Editar Proveedor ", font = fuente_botones, command = editar_proveedor, image = img_editar_prod, compound = RIGHT)
 			boton_editar_proveedor.pack(side = LEFT, padx = 10, anchor = N)
+			boton_editar_proveedor.config(state = "disable")
+
 
 			def eliminar_proveedor():
 				pass
 			boton_eliminar_proveedor = Button(frame_inferior, bg = color_botones, text = "Eliminar Proveedor", font = fuente_botones, command = eliminar_proveedor, image = img_eliminar, compound = RIGHT)
 			boton_eliminar_proveedor.pack(side = LEFT, padx = 10, anchor = N)
+			boton_eliminar_proveedor.config(state = "disable")
 
 			def volver():
 				olvidar_proveedores()
@@ -1041,16 +1049,19 @@ def ventana(ancho,alto,maximizada,titulo):
 				pass
 			boton_ver_ticket = Button(frame_inferior, bg = color_botones, text = "     Ver Ticket     ", font = fuente_botones, command = ver_ticket, image = img_revisar, compound = RIGHT)
 			boton_ver_ticket.pack(side = LEFT, padx = (145,0), anchor = N)
+			boton_ver_ticket.config(state = "disable")
 
 			def imprimir_reporte():
 				pass
 			boton_imprimir_reporte = Button(frame_inferior, bg = color_botones, text = "Imprimir Reporte", font = fuente_botones, command = imprimir_reporte, image = img_ticket, compound = RIGHT)
 			boton_imprimir_reporte.pack(side = LEFT, padx = (20,0), anchor = N)
+			boton_imprimir_reporte.config(state = "disable")
 
 			def limpiar_pant():
 				pass
 			boton_limpiar_pant = Button(frame_inferior, bg = color_botones, text = "Limpiar Pantalla", font = fuente_botones, command = limpiar_pant, image = img_borrador, compound = RIGHT)
 			boton_limpiar_pant.pack(side = LEFT, padx = (20,0), anchor = N)
+			boton_limpiar_pant.config(state = "disable")
 
 			def volver():
 				olvidar_reportes()
@@ -1121,6 +1132,7 @@ def ventana(ancho,alto,maximizada,titulo):
 		boton5.pack(side = LEFT, anchor = N, pady = 60, padx = 140)
 		boton6.pack(side = LEFT, anchor = N, pady = 60, padx = 138)
 		boton_ajustes.pack(side = RIGHT, anchor = E)
+		boton_ajustes.config(state = "disable")
 
 		def olvidar_pantalla_principal():
 			cinta_superior.forget()
